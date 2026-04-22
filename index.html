@@ -27,7 +27,7 @@ header h1{font-size:16px;font-weight:600;letter-spacing:.02em}
 .wrap{max-width:1200px;margin:0 auto;padding:0 14px 14px}
 
 /* ── summary ── */
-.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px}
+.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:12px}
 .sc{background:white;border-radius:9px;padding:11px 14px;border:1px solid #e0ddd8}
 .sc .lb{font-size:10px;color:#999;letter-spacing:.06em;margin-bottom:2px;text-transform:uppercase}
 .sc .vl{font-size:22px;font-weight:700;color:#1a1a2e}
@@ -175,13 +175,13 @@ tr.cband td{background:#f2f0eb;border-bottom:1px solid #e0ddd8;border-top:2px so
 .eye-btn{position:absolute;right:8px;background:none;border:none;cursor:pointer;
   color:#aaa;padding:2px;line-height:1;font-size:16px;transition:color .15s}
 .eye-btn:hover{color:#555}
-.api-edit-btn{font-size:11px;background:none;color:#4285f4;border:1px solid #4285f4;
-  padding:4px 10px;border-radius:5px;cursor:pointer;margin-top:6px;display:none}
-.api-edit-btn:hover{background:#f0f4ff}
 .api-mask{font-size:13px;font-family:monospace;color:#555;padding:8px 11px;
   background:#f7f6f2;border:1px solid #ddd;border-radius:7px;
   display:flex;align-items:center;justify-content:space-between;gap:8px}
 .api-mask-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.api-edit-btn{font-size:11px;background:none;color:#4285f4;border:1px solid #4285f4;
+  padding:4px 10px;border-radius:5px;cursor:pointer;white-space:nowrap}
+.api-edit-btn:hover{background:#f0f4ff}
 .setting-note{font-size:11px;color:#aaa;margin-top:5px;line-height:1.6}
 .setting-note a{color:#4285f4;text-decoration:none}
 .modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;padding-top:16px;
@@ -259,13 +259,10 @@ tr.cband td{background:#f2f0eb;border-bottom:1px solid #e0ddd8;border-top:2px so
     </h2>
     <div class="setting-row">
       <label>Google Places API キー</label>
-      <!-- 設定済み表示 -->
       <div class="api-mask" id="apiKeyMask" style="display:none">
         <span class="api-mask-text" id="apiKeyMaskText"></span>
-        <button class="api-edit-btn" id="apiEditBtn" style="display:inline-block;margin-top:0"
-          onclick="startEditKey()">変更する</button>
+        <button class="api-edit-btn" onclick="startEditKey()">変更する</button>
       </div>
-      <!-- 入力欄 -->
       <div class="api-input-wrap" id="apiInputWrap">
         <input type="password" id="apiKeyInput" placeholder="AIza...">
         <button class="eye-btn" id="eyeBtn" type="button" onclick="toggleKeyVis()" title="表示/非表示">👁</button>
@@ -334,7 +331,6 @@ tr.cband td{background:#f2f0eb;border-bottom:1px solid #e0ddd8;border-top:2px so
   <div class="sg">
     <div class="sc"><div class="lb">全教室数</div><div class="vl" id="s1">24</div><div class="sb">個別 19 ／ プラス 5</div></div>
     <div class="sc"><div class="lb">総口コミ数</div><div class="vl" id="s2">0</div><div class="sb">全教室合計</div></div>
-    <div class="sc"><div class="lb">未返信</div><div class="vl al" id="s3">0</div><div class="sb" id="s3b">教室数: 0件</div></div>
     <div class="sc"><div class="lb">平均評価</div><div class="vl" id="s5">—</div><div class="sb">口コミあり教室の平均</div></div>
   </div>
 
@@ -349,7 +345,6 @@ tr.cband td{background:#f2f0eb;border-bottom:1px solid #e0ddd8;border-top:2px so
     <div class="toolbar">
       <span class="spacer"></span>
       <button class="savbtn" onclick="openAddModal()">＋ 教室を追加</button>
-      <button class="savbtn" onclick="saveAll()">このタブを一括保存</button>
       <span class="savmsg" id="savMsg">✓ 保存しました</span>
     </div>
     <table>
@@ -359,7 +354,6 @@ tr.cband td{background:#f2f0eb;border-bottom:1px solid #e0ddd8;border-top:2px so
         <th class="w2">マップ</th>
         <th class="w3 s" onclick="srt('total')"   id="tt">口コミ数<span class="si"></span></th>
         <th class="w4 s" onclick="srt('replied')" id="tr2">返信済<span class="si"></span></th>
-        <th class="w5 s" onclick="srt('unr')"     id="tu">未返信<span class="si"></span></th>
         <th class="w6 s" onclick="srt('rating')"  id="tra">評価<span class="si"></span></th>
         <th class="w7 s" onclick="srt('updated')" id="td2">最終更新<span class="si"></span></th>
         <th class="w8">操作</th>
@@ -434,40 +428,33 @@ function maskKey(k) {
 
 function openSettings() {
   const k = getKey();
-  const mask   = document.getElementById('apiKeyMask');
-  const wrap   = document.getElementById('apiInputWrap');
-  const input  = document.getElementById('apiKeyInput');
+  const mask    = document.getElementById('apiKeyMask');
+  const wrap    = document.getElementById('apiInputWrap');
+  const input   = document.getElementById('apiKeyInput');
   const saveBtn = document.getElementById('saveSettingsBtn');
   if (k) {
-    // 設定済み → マスク表示、入力欄は隠す
     document.getElementById('apiKeyMaskText').textContent = maskKey(k);
     mask.style.display  = 'flex';
     wrap.style.display  = 'none';
     input.value = '';
     saveBtn.style.display = 'none';
   } else {
-    // 未設定 → 入力欄表示
     mask.style.display  = 'none';
     wrap.style.display  = 'flex';
     input.value = '';
     saveBtn.style.display = '';
   }
-  // 目アイコンをリセット
   input.type = 'password';
   document.getElementById('eyeBtn').textContent = '👁';
   document.getElementById('settingsModal').style.display = 'flex';
 }
 
 function startEditKey() {
-  const mask  = document.getElementById('apiKeyMask');
-  const wrap  = document.getElementById('apiInputWrap');
-  const input = document.getElementById('apiKeyInput');
-  const saveBtn = document.getElementById('saveSettingsBtn');
-  mask.style.display = 'none';
-  wrap.style.display = 'flex';
-  input.value = '';
-  input.focus();
-  saveBtn.style.display = '';
+  document.getElementById('apiKeyMask').style.display = 'none';
+  document.getElementById('apiInputWrap').style.display = 'flex';
+  document.getElementById('apiKeyInput').value = '';
+  document.getElementById('apiKeyInput').focus();
+  document.getElementById('saveSettingsBtn').style.display = '';
 }
 
 function toggleKeyVis() {
@@ -556,7 +543,7 @@ function srt(k) {
   else { sk = k; sd = (k==='name'||k==='num'||k==='updated') ? 'asc' : 'desc'; }
   updHdr(); render();
 }
-const TH_IDS = {num:'tn',name:'tna',total:'tt',replied:'tr2',unr:'tu',rating:'tra',updated:'td2'};
+const TH_IDS = {num:'tn',name:'tna',total:'tt',replied:'tr2',rating:'tra',updated:'td2'};
 function updHdr() {
   Object.entries(TH_IDS).forEach(([k,id]) => {
     const el = document.getElementById(id); if(!el) return;
@@ -600,7 +587,7 @@ function render() {
     if (curTab==='all' && !sk && b.cat!==lcat) {
       const cnt = BR.filter(x=>x.cat===b.cat).length;
       const dotCls = b.cat==='manten'?'m':b.cat==='plus'?'p':'a';
-      rows += `<tr class="cband"><td colspan="9"><div class="cbl">
+      rows += `<tr class="cband"><td colspan="8"><div class="cbl">
         <span class="cdot ${dotCls}"></span>${CAT[b.cat]}
         <span style="font-weight:400;color:#aaa">${cnt}教室</span></div></td></tr>`;
       lcat = b.cat;
@@ -627,39 +614,24 @@ function render() {
       <td><span class="bn">${b.name}</span></td>
       <td>${mb}</td>
       <td><input class="ni" type="number" min="0" id="t-${b.id}" value="${d.total||0}" readonly title="「全教室を更新」ボタンで自動取得します"></td>
-      <td><input class="ni" type="number" min="0" id="r-${b.id}" value="${d.replied||0}" onchange="cl('${b.id}')"></td>
-      <td><span class="ub ${uc(u)}">${u}</span></td>
+      <td><input class="ni" type="number" min="0" id="r-${b.id}" value="${d.replied||0}" onchange="autoSaveReplied('${b.id}')"></td>
       <td>${rh}</td>
       <td><span class="dc">${fmt(d.lastUpdated)}</span></td>
       <td style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
-        <button class="rb" onclick="svReplied('${b.id}')">返信済を保存</button>
         ${delBtn}
       </td>
     </tr>`;
   });
   document.getElementById('tbody').innerHTML =
-    rows || `<tr><td colspan="9" class="empty">該当教室なし ✓</td></tr>`;
+    rows || `<tr><td colspan="8" class="empty">該当教室なし ✓</td></tr>`;
 }
 
-function cl(id) {
-  const t=document.getElementById('t-'+id), r=document.getElementById('r-'+id);
-  if(t&&r){const tv=parseInt(t.value)||0,rv=parseInt(r.value)||0;if(rv>tv)r.value=tv;}
-}
-function svReplied(id) {
+function autoSaveReplied(id) {
   const t=parseInt(document.getElementById('t-'+id)?.value)||0;
-  const r=Math.min(parseInt(document.getElementById('r-'+id)?.value)||0, t);
+  const rv=parseInt(document.getElementById('r-'+id)?.value)||0;
+  const r=Math.min(rv, t);
+  document.getElementById('r-'+id).value=r;
   D[id].replied=r; D[id].lastUpdated=new Date().toISOString();
-  persist(); summ(); render();
-}
-function saveAll() {
-  bForTab(curTab).forEach(b => {
-    const r=document.getElementById('r-'+b.id);
-    if(r){
-      const tv=D[b.id]?.total||0;
-      D[b.id].replied=Math.min(parseInt(r.value)||0, tv);
-      D[b.id].lastUpdated=new Date().toISOString();
-    }
-  });
   persist(); summ(); render();
 }
 
@@ -794,8 +766,7 @@ function summ() {
     if(d.rating&&(d.total||0)>0) rats.push(d.rating);
   });
   document.getElementById('s2').textContent=tot.toLocaleString();
-  document.getElementById('s3').textContent=totU.toLocaleString();
-  document.getElementById('s3b').textContent=`教室数: ${unrB}件`;
+
   document.getElementById('s5').textContent =
     rats.length ? (rats.reduce((a,b)=>a+b,0)/rats.length).toFixed(2) : '—';
 }
@@ -804,15 +775,23 @@ function summ() {
 async function callPlaces(pid) {
   const key = getKey();
   if (!key) throw new Error('no-key');
-  const url = `https://maps.googleapis.com/maps/api/place/details/json` +
-    `?place_id=${pid}&fields=rating,user_ratings_total&key=${key}&language=ja`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('HTTP ' + res.status);
+  // Places API (New) を使用 → ブラウザからCORSなしで呼べる
+  const url = `https://places.googleapis.com/v1/places/${pid}`;
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'X-Goog-Api-Key': key,
+      'X-Goog-FieldMask': 'rating,userRatingCount',
+    },
+  });
+  if (!res.ok) {
+    const errJson = await res.json().catch(() => ({}));
+    throw new Error(errJson?.error?.message || 'HTTP ' + res.status);
+  }
   const json = await res.json();
-  if (json.status !== 'OK') throw new Error(json.status);
   return {
-    total:  json.result.user_ratings_total ?? null,
-    rating: json.result.rating             ?? null,
+    total:  json.userRatingCount ?? null,
+    rating: json.rating          ?? null,
   };
 }
 

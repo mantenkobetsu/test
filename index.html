@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>まんてん口コミ管理</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Hiragino Sans','Noto Sans JP',sans-serif;background:#f0ede8;color:#1a1a1a;font-size:14px}
+
+/* ── header ── */
+header{background:#1a1a2e;color:white;padding:13px 22px;display:flex;align-items:center;gap:12px}
+header h1{font-size:16px;font-weight:600;letter-spacing:.02em}
+.hbadge{font-size:11px;background:rgba(255,255,255,.12);padding:3px 10px;border-radius:20px;margin-left:auto}
+.hbtn{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+  background:rgba(255,255,255,.15);color:white;border:1.5px solid rgba(255,255,255,.3);
+  padding:6px 14px;border-radius:7px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.hbtn:hover{background:rgba(255,255,255,.25)}
+.hbtn:disabled{opacity:.45;cursor:default}
+.spin{display:inline-block;width:11px;height:11px;
+  border:2px solid rgba(255,255,255,.3);border-top-color:white;
+  border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* .apibar styles removed - API key is now in settings modal */
+
+.wrap{max-width:1200px;margin:0 auto;padding:0 14px 14px}
+
+/* ── summary ── */
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px}
+.sc{background:white;border-radius:9px;padding:11px 14px;border:1px solid #e0ddd8}
+.sc .lb{font-size:10px;color:#999;letter-spacing:.06em;margin-bottom:2px;text-transform:uppercase}
+.sc .vl{font-size:22px;font-weight:700;color:#1a1a2e}
+.sc .vl.al{color:#c0392b}.sc .vl.ok{color:#27ae60}
+.sc .sb{font-size:11px;color:#bbb;margin-top:1px}
+
+/* ── tabs ── */
+.tabs{display:flex;background:white;border-radius:9px 9px 0 0;border:1px solid #e0ddd8;border-bottom:none;overflow:hidden}
+.tab{padding:11px 18px;cursor:pointer;font-size:12px;font-weight:500;color:#888;
+  border-bottom:3px solid transparent;background:none;
+  border-top:none;border-left:none;border-right:none;
+  transition:all .15s;white-space:nowrap}
+.tab:hover{color:#1a1a2e;background:#fafaf8}
+.tab.active{color:#1a1a2e;border-bottom-color:#1a1a2e;background:white}
+
+/* ── table ── */
+.twrap{background:white;border-radius:0 9px 9px 9px;border:1px solid #e0ddd8;overflow:hidden}
+.toolbar{padding:8px 12px;border-bottom:1px solid #f0ede8;display:flex;align-items:center;
+  gap:10px;background:#fafaf8;flex-wrap:wrap}
+.toolbar label{font-size:11px;color:#555;display:flex;align-items:center;gap:4px;cursor:pointer}
+.toolbar input[type=checkbox]{width:12px;height:12px;accent-color:#c0392b}
+.spacer{flex:1}
+.savbtn{font-size:11px;background:#1a1a2e;color:white;border:none;
+  padding:5px 12px;border-radius:5px;cursor:pointer}
+.savbtn:hover{background:#2d2d4e}
+.savmsg{font-size:11px;color:#27ae60;opacity:0;transition:opacity .3s}
+.savmsg.show{opacity:1}
+
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th{padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:#888;
+  letter-spacing:.06em;background:#f7f6f2;border-bottom:1px solid #e0ddd8;
+  white-space:nowrap;user-select:none;text-transform:uppercase}
+th.s{cursor:pointer}
+th.s:hover{background:#edeae4;color:#444}
+th.sa .si::after{content:' ↑';color:#1a1a2e}
+th.sd .si::after{content:' ↓';color:#1a1a2e}
+th.sa,th.sd{color:#1a1a2e}
+
+td{padding:8px 10px;border-bottom:1px solid #f0ede8;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafaf8}
+tr.warn td{background:#fff8f7}
+tr.warn:hover td{background:#fff1ef}
+tr.fetching td{background:#f0f4ff}
+
+/* category band */
+tr.cband td{background:#f2f0eb;border-bottom:1px solid #e0ddd8;border-top:2px solid #d5d1ca;padding:5px 10px}
+.cbl{font-size:11px;font-weight:700;letter-spacing:.07em;color:#555;display:flex;align-items:center;gap:6px}
+.cdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.cdot.m{background:#4a4a9e}.cdot.p{background:#2e7d32}.cdot.a{background:#e67e22}
+
+.nc{font-size:11px;color:#bbb;font-weight:500;text-align:center}
+.bn{font-weight:600;font-size:13px;color:#1a1a2e}
+
+/* map link */
+.ml{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:3px 8px;
+  border-radius:5px;border:1px solid #ddd;color:#555;text-decoration:none;
+  background:white;transition:all .1s;white-space:nowrap}
+.ml:hover{border-color:#4285f4;color:#4285f4;background:#f0f4ff}
+.ml svg{width:10px;height:10px;flex-shrink:0}
+.ml.none{color:#ccc;border-color:#eee;cursor:default}
+
+/* inputs */
+.ni{width:56px;padding:3px 6px;border:1px solid #e0ddd8;border-radius:5px;
+  font-size:13px;text-align:center;font-family:inherit;color:#1a1a2e}
+.ni:focus{outline:none;border-color:#1a1a2e;box-shadow:0 0 0 2px rgba(26,26,46,.06)}
+.ni:read-only{background:#f7f6f2;color:#aaa;cursor:default}
+
+/* badges */
+.sv{font-size:12px;color:#f59e0b;font-weight:600}
+.sv.none{color:#ccc;font-weight:400}
+.ub{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;min-width:28px;text-align:center}
+.ub.z{background:#e8f5e9;color:#2e7d32}
+.ub.s{background:#fff3e0;color:#e65100}
+.ub.h{background:#fdecea;color:#c0392b}
+.dc{font-size:11px;color:#bbb}
+
+/* row buttons */
+.rb{display:inline-flex;align-items:center;gap:2px;font-size:11px;padding:3px 8px;
+  border-radius:5px;border:1px solid #ddd;background:white;cursor:pointer;
+  color:#555;transition:all .1s;white-space:nowrap}
+.rb:hover{border-color:#1a1a2e;color:#1a1a2e}
+.rb.fetch{border-color:#4285f4;color:#4285f4}
+.rb.fetch:hover{background:#f0f4ff}
+.rb.fetch:disabled{opacity:.4;cursor:default}
+.rbspin{display:inline-block;width:9px;height:9px;
+  border:1.5px solid rgba(66,133,244,.3);border-top-color:#4285f4;
+  border-radius:50%;animation:sp .7s linear infinite}
+
+/* col widths */
+.w0{width:5%}.w1{width:15%}.w2{width:8%}.w3{width:9%}.w4{width:9%}
+.w5{width:9%}.w6{width:8%}.w7{width:12%}.w8{width:25%}
+
+/* .uer styles removed */
+
+.empty{text-align:center;padding:36px;color:#aaa;font-size:13px}
+
+/* ── progress overlay ── */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;
+  display:flex;align-items:center;justify-content:center}
+.pb{background:white;border-radius:13px;padding:24px 26px;width:440px;
+  max-width:94vw;display:flex;flex-direction:column;gap:12px;max-height:88vh}
+.pb h2{font-size:14px;font-weight:700;color:#1a1a2e}
+.pbar-w{height:5px;background:#f0ede8;border-radius:3px;overflow:hidden}
+.pbar{height:5px;background:#4285f4;border-radius:3px;transition:width .35s}
+.pcnt{font-size:11px;color:#888}
+.plist{overflow-y:auto;flex:1;border:1px solid #f0ede8;border-radius:7px;min-height:140px}
+.pi{display:grid;grid-template-columns:22px 1fr auto;align-items:center;gap:7px;
+  padding:6px 10px;border-bottom:1px solid #f5f4f0;font-size:12px}
+.pi:last-child{border-bottom:none}
+.pnum{color:#bbb;text-align:right;font-size:11px}
+.pname{font-weight:500;color:#1a1a2e}
+.pst{white-space:nowrap;font-size:11px}
+.pst.wait{color:#ccc}
+.pst.load{color:#4285f4}
+.pst.done{color:#27ae60;font-weight:600}
+.pst.err{color:#c0392b}
+.pfooter{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pnote{font-size:11px;color:#888;flex:1}
+.pcls{font-size:12px;background:#1a1a2e;color:white;border:none;
+  padding:6px 16px;border-radius:6px;cursor:pointer}
+.pcls:disabled{background:#bbb;cursor:default}
+
+@media(max-width:900px){.w7{display:none}.sg{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:580px){.sg{grid-template-columns:repeat(2,1fr)}}
+
+/* ── settings modal ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;
+  display:flex;align-items:center;justify-content:center}
+.modal{background:white;border-radius:13px;padding:26px 28px;width:500px;
+  max-width:94vw;box-shadow:0 8px 40px rgba(0,0,0,.18)}
+.modal h2{font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:18px;
+  display:flex;align-items:center;gap:8px}
+.modal-close{margin-left:auto;background:none;border:none;font-size:18px;
+  color:#aaa;cursor:pointer;line-height:1;padding:0}
+.modal-close:hover{color:#555}
+.setting-row{margin-bottom:16px}
+.setting-row label{display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:6px}
+.setting-row input{width:100%;padding:8px 36px 8px 11px;border:1px solid #ddd;border-radius:7px;
+  font-size:13px;font-family:monospace}
+.setting-row input:focus{outline:none;border-color:#4285f4;box-shadow:0 0 0 2px rgba(66,133,244,.12)}
+.setting-row input:read-only{background:#f7f6f2;color:#888;cursor:default}
+.api-input-wrap{position:relative;display:flex;align-items:center}
+.api-input-wrap input{flex:1}
+.eye-btn{position:absolute;right:8px;background:none;border:none;cursor:pointer;
+  color:#aaa;padding:2px;line-height:1;font-size:16px;transition:color .15s}
+.eye-btn:hover{color:#555}
+.api-edit-btn{font-size:11px;background:none;color:#4285f4;border:1px solid #4285f4;
+  padding:4px 10px;border-radius:5px;cursor:pointer;margin-top:6px;display:none}
+.api-edit-btn:hover{background:#f0f4ff}
+.api-mask{font-size:13px;font-family:monospace;color:#555;padding:8px 11px;
+  background:#f7f6f2;border:1px solid #ddd;border-radius:7px;
+  display:flex;align-items:center;justify-content:space-between;gap:8px}
+.api-mask-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.setting-note{font-size:11px;color:#aaa;margin-top:5px;line-height:1.6}
+.setting-note a{color:#4285f4;text-decoration:none}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;padding-top:16px;
+  border-top:1px solid #f0ede8}
+.mbtn-save{font-size:13px;background:#1a1a2e;color:white;border:none;
+  padding:8px 22px;border-radius:7px;cursor:pointer;font-weight:600}
+.mbtn-save:hover{background:#2d2d4e}
+.mbtn-cancel{font-size:13px;background:none;color:#666;border:1px solid #ddd;
+  padding:8px 16px;border-radius:7px;cursor:pointer}
+.mbtn-cancel:hover{background:#f7f6f2}
+.key-indicator{display:inline-flex;align-items:center;gap:5px;font-size:11px;
+  padding:3px 9px;border-radius:20px}
+.key-indicator.set{background:#e8f5e9;color:#2e7d32}
+.key-indicator.unset{background:#fdecea;color:#c0392b}
+
+/* ── add school modal ── */
+.afield{margin-bottom:14px}
+.afield label{display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px}
+.afield input,.afield select{width:100%;padding:8px 11px;border:1px solid #ddd;border-radius:7px;
+  font-size:13px;font-family:inherit}
+.afield input:focus,.afield select:focus{outline:none;border-color:#4285f4;
+  box-shadow:0 0 0 2px rgba(66,133,244,.12)}
+.afield .anote{font-size:11px;color:#aaa;margin-top:4px}
+.rb.del{border-color:#e57373;color:#c0392b}
+.rb.del:hover{background:#fdecea;border-color:#c0392b}
+/* candidate rows */
+.cand-row{padding:10px 12px;cursor:pointer;border-bottom:1px solid #f0ede8;
+  display:flex;flex-direction:column;gap:3px;transition:background .1s}
+.cand-row:last-child{border-bottom:none}
+.cand-row:hover{background:#f0f4ff}
+.cand-row.selected{background:#e8f0fe}
+.cand-name{font-size:13px;font-weight:600;color:#1a1a2e}
+.cand-addr{font-size:11px;color:#888}
+.cand-pid{font-size:10px;color:#bbb;font-family:monospace}
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <rect width="24" height="24" rx="5" fill="rgba(255,255,255,.18)"/>
+    <text x="12" y="17" text-anchor="middle" fill="white" font-size="13" font-family="sans-serif">★</text>
+  </svg>
+  <h1>まんてん 口コミ管理</h1>
+  <span class="hbadge" id="lastSave"></span>
+  <span class="key-indicator unset" id="keyIndicator" style="margin-left:4px">● APIキー未設定</span>
+  <button class="hbtn" id="updBtn" onclick="fetchAll()">
+    <span id="updIco">↻</span> 全教室を更新
+  </button>
+  <button class="hbtn" onclick="openSettings()" title="設定">
+    ⚙ 設定
+  </button>
+</header>
+
+<!-- progress overlay -->
+<div class="ov" id="ov" style="display:none">
+  <div class="pb">
+    <h2 id="ovTitle">口コミ数・評価を取得中</h2>
+    <div class="pbar-w"><div class="pbar" id="pbar" style="width:0%"></div></div>
+    <div class="pcnt" id="pcnt"></div>
+    <div class="plist" id="plist"></div>
+    <div class="pfooter">
+      <span class="pnote" id="pnote">しばらくお待ちください…</span>
+      <button class="pcls" id="pcls" disabled onclick="closeOv()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- settings modal -->
+<div class="modal-bg" id="settingsModal" style="display:none">
+  <div class="modal">
+    <h2>
+      ⚙ 設定
+      <button class="modal-close" onclick="closeSettings()">✕</button>
+    </h2>
+    <div class="setting-row">
+      <label>Google Places API キー</label>
+      <!-- 設定済み表示 -->
+      <div class="api-mask" id="apiKeyMask" style="display:none">
+        <span class="api-mask-text" id="apiKeyMaskText"></span>
+        <button class="api-edit-btn" id="apiEditBtn" style="display:inline-block;margin-top:0"
+          onclick="startEditKey()">変更する</button>
+      </div>
+      <!-- 入力欄 -->
+      <div class="api-input-wrap" id="apiInputWrap">
+        <input type="password" id="apiKeyInput" placeholder="AIza...">
+        <button class="eye-btn" id="eyeBtn" type="button" onclick="toggleKeyVis()" title="表示/非表示">👁</button>
+      </div>
+      <div class="setting-note">
+        ※ <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a>
+        で「Places API」を有効にしたAPIキーを入力してください。<br>
+        キーはこのブラウザの localStorage に保存され、外部には送信されません。
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="mbtn-cancel" onclick="closeSettings()">キャンセル</button>
+      <button class="mbtn-save" id="saveSettingsBtn" onclick="saveSettings()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- add school modal -->
+<div class="modal-bg" id="addModal" style="display:none">
+  <div class="modal" style="width:520px">
+    <h2>
+      ＋ 教室を追加
+      <button class="modal-close" onclick="closeAddModal()">✕</button>
+    </h2>
+
+    <!-- step1: 入力 -->
+    <div id="addStep1">
+      <div class="afield">
+        <label>ブランド</label>
+        <select id="addCat">
+          <option value="manten">まんてん個別</option>
+          <option value="plus">まんてん個別プラス</option>
+          <option value="atama">atama+</option>
+        </select>
+      </div>
+      <div class="afield">
+        <label>教室名 <span style="color:#c0392b">*</span></label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="addName" placeholder="例：明石" style="flex:1"
+            onkeydown="if(event.key==='Enter')searchPlace()">
+          <button class="mbtn-save" id="addSearchBtn" onclick="searchPlace()"
+            style="white-space:nowrap;padding:8px 16px">検索</button>
+        </div>
+        <div class="anote">「教室」は自動で付けて検索します</div>
+      </div>
+      <div id="addSearchStatus" style="font-size:12px;color:#888;min-height:18px;margin-bottom:4px"></div>
+
+      <!-- 候補リスト -->
+      <div id="addCandidates" style="display:none;border:1px solid #e0ddd8;border-radius:8px;overflow:hidden;margin-bottom:14px">
+        <div style="font-size:11px;color:#888;padding:7px 12px;background:#f7f6f2;border-bottom:1px solid #e0ddd8">
+          候補を選択してください
+        </div>
+        <div id="addCandidateList"></div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="mbtn-cancel" onclick="closeAddModal()">キャンセル</button>
+      <button class="mbtn-save" id="addConfirmBtn" onclick="confirmAdd()" disabled
+        style="opacity:.4">追加する</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="sg">
+    <div class="sc"><div class="lb">全教室数</div><div class="vl" id="s1">24</div><div class="sb">個別 19 ／ プラス 5</div></div>
+    <div class="sc"><div class="lb">総口コミ数</div><div class="vl" id="s2">0</div><div class="sb">全教室合計</div></div>
+    <div class="sc"><div class="lb">未返信</div><div class="vl al" id="s3">0</div><div class="sb" id="s3b">教室数: 0件</div></div>
+    <div class="sc"><div class="lb">平均評価</div><div class="vl" id="s5">—</div><div class="sb">口コミあり教室の平均</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="sw('all')">全教室（25）</button>
+    <button class="tab"        onclick="sw('manten')">まんてん個別（19）</button>
+    <button class="tab"        onclick="sw('plus')">まんてん個別プラス（5）</button>
+    <button class="tab"        onclick="sw('atama')">atama+（1）</button>
+  </div>
+
+  <div class="twrap">
+    <div class="toolbar">
+      <span class="spacer"></span>
+      <button class="savbtn" onclick="openAddModal()">＋ 教室を追加</button>
+      <button class="savbtn" onclick="saveAll()">このタブを一括保存</button>
+      <span class="savmsg" id="savMsg">✓ 保存しました</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th class="w0 s" onclick="srt('num')"     id="tn">No.<span class="si"></span></th>
+        <th class="w1 s" onclick="srt('name')"    id="tna">教室名<span class="si"></span></th>
+        <th class="w2">マップ</th>
+        <th class="w3 s" onclick="srt('total')"   id="tt">口コミ数<span class="si"></span></th>
+        <th class="w4 s" onclick="srt('replied')" id="tr2">返信済<span class="si"></span></th>
+        <th class="w5 s" onclick="srt('unr')"     id="tu">未返信<span class="si"></span></th>
+        <th class="w6 s" onclick="srt('rating')"  id="tra">評価<span class="si"></span></th>
+        <th class="w7 s" onclick="srt('updated')" id="td2">最終更新<span class="si"></span></th>
+        <th class="w8">操作</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const BR = [
+  {id:'hyogo',      name:'兵庫駅前',   cat:'manten', num:1,  gn:1,  pid:'ChIJ6TPujnaFAGARSJ8WxaQhXms', fixUrl:'https://maps.app.goo.gl/8p99F5qPQy5qutn57'},
+  {id:'minato',     name:'湊川',       cat:'manten', num:2,  gn:2,  pid:'ChIJ2f2rkrqPAGAR2X3FhDdjp-Q'},
+  {id:'shinnagata', name:'新長田',     cat:'manten', num:3,  gn:3,  pid:'ChIJ1U6i1iKFAGARMvnS9i2P8Vs'},
+  {id:'htarumi',    name:'東垂水',     cat:'manten', num:4,  gn:4,  pid:'ChIJr2gUDvODAGARDF46lWF3S8o'},
+  {id:'sumatsuki',  name:'須磨月見山', cat:'manten', num:5,  gn:5,  pid:'ChIJD3ocd8uFAGAR0DI4mbo5f-I'},
+  {id:'maiko',      name:'舞子坂',     cat:'manten', num:6,  gn:6,  pid:'ChIJcdGuAGqBAGARE_2TJolRJzo'},
+  {id:'okubo',      name:'大久保',     cat:'manten', num:7,  gn:7,  pid:'ChIJ3TBiCurVVDURDfgEDpZquOs'},
+  {id:'nishiaka',   name:'西明石',     cat:'manten', num:8,  gn:8,  pid:'ChIJKRE6HeHVVDURYdgEj7Yy_7c'},
+  {id:'tarumis',    name:'垂水星陵台', cat:'manten', num:9,  gn:9,  pid:'ChIJ0U9VuU6DAGARsUyakG9ufP8'},
+  {id:'nsuzu',      name:'西鈴蘭台',   cat:'manten', num:10, gn:10, pid:'ChIJn2mXfMiHAGAR9sw9Hu8gNII'},
+  {id:'oishi',      name:'大石',       cat:'manten', num:11, gn:11, pid:'ChIJie8WhwqNAGARWOQhEnon4qE'},
+  {id:'futami',     name:'二見',       cat:'manten', num:12, gn:12, pid:'ChIJWfI9b03XVDURYA3RBgWwsII'},
+  {id:'rokko',      name:'六甲',       cat:'manten', num:13, gn:13, pid:'ChIJVf9QcuSNAGARK1WfnEprm7M'},
+  {id:'kakogawa',   name:'加古川',     cat:'manten', num:14, gn:14, pid:'ChIJJQVBw4fZVDURM1DZB9C1NGY'},
+  {id:'nishinoma',  name:'西新町',     cat:'manten', num:15, gn:15, pid:'ChIJC4eBE7TVVDURyrjrAhykoj0'},
+  {id:'yamanomac',  name:'山の街',     cat:'manten', num:16, gn:16, pid:'ChIJqUshXOGJAGARpLBezqLr4Z0'},
+  {id:'hkakogawa',  name:'東加古川',   cat:'manten', num:17, gn:17, pid:'ChIJj2HxrDnXVDURK5BxhcjpRxw'},
+  {id:'sumiyoshi',  name:'住吉駅前',   cat:'manten', num:18, gn:18, pid:'ChIJpbMi4gWNAGARJmkksUXbnjg'},
+  {id:'tarumiek',   name:'垂水駅前',   cat:'manten', num:19, gn:19, pid:'ChIJa4MhxhWDAGARsQ0gaMlBg1M'},
+  {id:'tatsuno',    name:'たつの',     cat:'plus',   num:1,  gn:20, pid:'ChIJ96c891rjVDURcFFBl1S17Us'},
+  {id:'hirohata',   name:'広畑',       cat:'plus',   num:2,  gn:21, pid:'ChIJKV_tf-LhVDURvimcPptPkr0'},
+  {id:'agaho',      name:'英賀保駅前', cat:'plus',   num:3,  gn:22, pid:'ChIJ48Bo5svhVDURQCdR717_2ss'},
+  {id:'himenaka',   name:'姫路中地',   cat:'plus',   num:4,  gn:23, pid:'ChIJj9J0mK7hVDURVpWKq3P5O60'},
+  {id:'shinzaike',  name:'新在家',     cat:'plus',   num:5,  gn:24, pid:''},
+  {id:'itayado',    name:'板宿校',     cat:'atama',  num:1,  gn:25, pid:'ChIJN5PaF0-FAGARNZ4U7jGF9eI'},
+];
+
+const CAT = {manten:'まんてん個別', plus:'まんてん個別プラス', atama:'atama+'};
+const SK  = 'manten-v11';
+
+let D = {}, curTab = 'all', urlEdit = null, sk = null, sd = 'asc';
+let rowFetching = {};  // id -> bool
+
+// ─── storage (localStorage for downloaded file) ───────────────────
+function storageGet(key) {
+  try { return localStorage.getItem(key); } catch(e) { return null; }
+}
+function storageSet(key, val) {
+  try { localStorage.setItem(key, val); } catch(e) {}
+}
+
+function getKey() { return storageGet('manten-api-key') || ''; }
+
+function updateKeyIndicator() {
+  const el = document.getElementById('keyIndicator');
+  if (!el) return;
+  if (getKey()) {
+    el.className = 'key-indicator set';
+    el.textContent = '● APIキー設定済み';
+  } else {
+    el.className = 'key-indicator unset';
+    el.textContent = '● APIキー未設定';
+  }
+}
+
+function maskKey(k) {
+  if (!k) return '';
+  if (k.length <= 8) return '●'.repeat(k.length);
+  return k.slice(0, 4) + '●'.repeat(Math.min(k.length - 6, 20)) + k.slice(-2);
+}
+
+function openSettings() {
+  const k = getKey();
+  const mask   = document.getElementById('apiKeyMask');
+  const wrap   = document.getElementById('apiInputWrap');
+  const input  = document.getElementById('apiKeyInput');
+  const saveBtn = document.getElementById('saveSettingsBtn');
+  if (k) {
+    // 設定済み → マスク表示、入力欄は隠す
+    document.getElementById('apiKeyMaskText').textContent = maskKey(k);
+    mask.style.display  = 'flex';
+    wrap.style.display  = 'none';
+    input.value = '';
+    saveBtn.style.display = 'none';
+  } else {
+    // 未設定 → 入力欄表示
+    mask.style.display  = 'none';
+    wrap.style.display  = 'flex';
+    input.value = '';
+    saveBtn.style.display = '';
+  }
+  // 目アイコンをリセット
+  input.type = 'password';
+  document.getElementById('eyeBtn').textContent = '👁';
+  document.getElementById('settingsModal').style.display = 'flex';
+}
+
+function startEditKey() {
+  const mask  = document.getElementById('apiKeyMask');
+  const wrap  = document.getElementById('apiInputWrap');
+  const input = document.getElementById('apiKeyInput');
+  const saveBtn = document.getElementById('saveSettingsBtn');
+  mask.style.display = 'none';
+  wrap.style.display = 'flex';
+  input.value = '';
+  input.focus();
+  saveBtn.style.display = '';
+}
+
+function toggleKeyVis() {
+  const input = document.getElementById('apiKeyInput');
+  const btn   = document.getElementById('eyeBtn');
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁';
+  }
+}
+
+function closeSettings() {
+  document.getElementById('settingsModal').style.display = 'none';
+  document.getElementById('apiKeyInput').value = '';
+  document.getElementById('apiKeyInput').type = 'password';
+}
+
+function saveSettings() {
+  const v = document.getElementById('apiKeyInput').value.trim();
+  if (v) {
+    storageSet('manten-api-key', v);
+  }
+  updateKeyIndicator();
+  closeSettings();
+}
+
+// モーダルの背景クリックで閉じる
+document.addEventListener('click', function(e) {
+  if (e.target.id === 'settingsModal') closeSettings();
+  if (e.target.id === 'addModal') closeAddModal();
+});
+
+// ─── data init ───────────────────────────────────────────────────
+function init() {
+  // Update key indicator
+  updateKeyIndicator();
+
+  // カスタム教室を復元
+  try {
+    const customs = JSON.parse(storageGet(SK+'-custom') || '[]');
+    customs.forEach(b => {
+      if (!BR.find(x => x.id === b.id)) BR.push(b);
+    });
+    // gn を振り直す
+    BR.forEach((b, i) => { b.gn = i + 1; });
+    updTabCounts();
+  } catch(e) {}
+
+  // Load data
+  try {
+    const raw = storageGet(SK);
+    if (raw) D = JSON.parse(raw);
+  } catch(e) {}
+  BR.forEach(b => {
+    if (!D[b.id]) D[b.id] = { total:0, replied:0, rating:null, mapUrl:'', lastUpdated:null };
+  });
+  summ(); render();
+}
+
+function persist() {
+  // データ保存
+  storageSet(SK, JSON.stringify(D));
+  // カスタム教室も保存
+  storageSet(SK+'-custom', JSON.stringify(BR.filter(b=>b.custom)));
+  document.getElementById('lastSave').textContent = '保存: ' + new Date().toLocaleTimeString('ja-JP');
+  const m = document.getElementById('savMsg');
+  m.classList.add('show');
+  setTimeout(() => m.classList.remove('show'), 2000);
+}
+
+// ─── tab / sort ───────────────────────────────────────────────────
+function bForTab(t) {
+  return t === 'all' ? BR : BR.filter(b => b.cat === t);
+}
+function sw(t) {
+  curTab = t; sk = null; sd = 'asc'; urlEdit = null;
+  document.querySelectorAll('.tab').forEach((el,i) =>
+    el.classList.toggle('active', ['all','manten','plus','atama'][i] === t));
+  updHdr(); render();
+}
+function srt(k) {
+  if (sk === k) { sd = sd === 'asc' ? 'desc' : 'asc'; }
+  else { sk = k; sd = (k==='name'||k==='num'||k==='updated') ? 'asc' : 'desc'; }
+  updHdr(); render();
+}
+const TH_IDS = {num:'tn',name:'tna',total:'tt',replied:'tr2',unr:'tu',rating:'tra',updated:'td2'};
+function updHdr() {
+  Object.entries(TH_IDS).forEach(([k,id]) => {
+    const el = document.getElementById(id); if(!el) return;
+    el.classList.remove('sa','sd');
+    if (sk===k) el.classList.add(sd==='asc'?'sa':'sd');
+  });
+}
+function gv(b, k) {
+  const d = D[b.id] || {}, u = Math.max(0,(d.total||0)-(d.replied||0));
+  return {num:curTab==='all'?b.gn:b.num, name:b.name, total:d.total||0,
+    replied:d.replied||0, unr:u, rating:d.rating||-1, updated:d.lastUpdated||''}[k] ?? 0;
+}
+
+// ─── render ───────────────────────────────────────────────────────
+function fmt(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('ja-JP',
+    {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function uc(n) { return n===0?'z':n<=3?'s':'h'; }
+function mUrl(b) {
+  return D[b.id]?.mapUrl || b.fixUrl ||
+    (b.pid ? `https://www.google.com/maps/place/?q=place_id:${b.pid}` : '');
+}
+
+function render() {
+  let list = [...bForTab(curTab)];
+  if (sk) list.sort((a,b)=>{
+    const av=gv(a,sk),bv=gv(b,sk);
+    return av<bv?(sd==='asc'?-1:1):av>bv?(sd==='asc'?1:-1):0;
+  });
+
+  let rows = '', lcat = null;
+  list.forEach(b => {
+    const d   = D[b.id] || {};
+    const u   = Math.max(0,(d.total||0)-(d.replied||0));
+    const url = mUrl(b);
+    const dn  = curTab==='all' ? b.gn : b.num;
+    const isF = rowFetching[b.id];
+
+    if (curTab==='all' && !sk && b.cat!==lcat) {
+      const cnt = BR.filter(x=>x.cat===b.cat).length;
+      const dotCls = b.cat==='manten'?'m':b.cat==='plus'?'p':'a';
+      rows += `<tr class="cband"><td colspan="9"><div class="cbl">
+        <span class="cdot ${dotCls}"></span>${CAT[b.cat]}
+        <span style="font-weight:400;color:#aaa">${cnt}教室</span></div></td></tr>`;
+      lcat = b.cat;
+    }
+
+    const mb = url
+      ? `<a class="ml" href="${url}" target="_blank">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+             <circle cx="12" cy="10" r="3"/>
+           </svg>開く</a>`
+      : `<span class="ml none">未設定</span>`;
+
+    const rh = d.rating
+      ? `<span class="sv">★${Number(d.rating).toFixed(1)}</span>`
+      : `<span class="sv none">—</span>`;
+
+    const delBtn = b.custom
+      ? `<button class="rb del" onclick="delSchool('${b.id}')">✕ 削除</button>`
+      : '';
+
+    rows += `<tr class="${u>0?'warn':''} ${isF?'fetching':''}" id="row-${b.id}">
+      <td class="nc">${dn}</td>
+      <td><span class="bn">${b.name}</span></td>
+      <td>${mb}</td>
+      <td><input class="ni" type="number" min="0" id="t-${b.id}" value="${d.total||0}" readonly title="「全教室を更新」ボタンで自動取得します"></td>
+      <td><input class="ni" type="number" min="0" id="r-${b.id}" value="${d.replied||0}" onchange="cl('${b.id}')"></td>
+      <td><span class="ub ${uc(u)}">${u}</span></td>
+      <td>${rh}</td>
+      <td><span class="dc">${fmt(d.lastUpdated)}</span></td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
+        <button class="rb" onclick="svReplied('${b.id}')">返信済を保存</button>
+        ${delBtn}
+      </td>
+    </tr>`;
+  });
+  document.getElementById('tbody').innerHTML =
+    rows || `<tr><td colspan="9" class="empty">該当教室なし ✓</td></tr>`;
+}
+
+function cl(id) {
+  const t=document.getElementById('t-'+id), r=document.getElementById('r-'+id);
+  if(t&&r){const tv=parseInt(t.value)||0,rv=parseInt(r.value)||0;if(rv>tv)r.value=tv;}
+}
+function svReplied(id) {
+  const t=parseInt(document.getElementById('t-'+id)?.value)||0;
+  const r=Math.min(parseInt(document.getElementById('r-'+id)?.value)||0, t);
+  D[id].replied=r; D[id].lastUpdated=new Date().toISOString();
+  persist(); summ(); render();
+}
+function saveAll() {
+  bForTab(curTab).forEach(b => {
+    const r=document.getElementById('r-'+b.id);
+    if(r){
+      const tv=D[b.id]?.total||0;
+      D[b.id].replied=Math.min(parseInt(r.value)||0, tv);
+      D[b.id].lastUpdated=new Date().toISOString();
+    }
+  });
+  persist(); summ(); render();
+}
+
+// ─── add / delete school ──────────────────────────────────────────
+let addSelected = null; // { name, pid, address }
+
+function openAddModal() {
+  addSelected = null;
+  document.getElementById('addName').value = '';
+  document.getElementById('addCat').value  = 'manten';
+  document.getElementById('addSearchStatus').textContent = '';
+  document.getElementById('addCandidates').style.display = 'none';
+  document.getElementById('addCandidateList').innerHTML  = '';
+  document.getElementById('addConfirmBtn').disabled = true;
+  document.getElementById('addConfirmBtn').style.opacity = '.4';
+  document.getElementById('addModal').style.display = 'flex';
+  setTimeout(() => document.getElementById('addName').focus(), 50);
+}
+function closeAddModal() {
+  document.getElementById('addModal').style.display = 'none';
+}
+
+async function searchPlace() {
+  const name = document.getElementById('addName').value.trim();
+  if (!name) { document.getElementById('addName').focus(); return; }
+  const key  = getKey();
+  if (!key) { closeAddModal(); openSettings(); return; }
+
+  const catLabel = {manten:'まんてん個別', plus:'まんてん個別プラス', atama:'atama+'}[document.getElementById('addCat').value] || '';
+  const query = catLabel ? `${catLabel} ${name}` : name;
+
+  const btn = document.getElementById('addSearchBtn');
+  const st  = document.getElementById('addSearchStatus');
+  btn.disabled = true;
+  btn.textContent = '検索中…';
+  st.textContent = '';
+  document.getElementById('addCandidates').style.display = 'none';
+  addSelected = null;
+  document.getElementById('addConfirmBtn').disabled = true;
+  document.getElementById('addConfirmBtn').style.opacity = '.4';
+
+  try {
+    // Places Text Search API
+    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json` +
+      `?query=${encodeURIComponent(query)}&language=ja&key=${key}`;
+    const res  = await fetch(url);
+    const json = await res.json();
+
+    if (json.status === 'REQUEST_DENIED') {
+      st.textContent = '⚠ APIキーエラー。設定を確認してください。';
+      st.style.color = '#c0392b';
+    } else if (!json.results || json.results.length === 0) {
+      st.textContent = '候補が見つかりませんでした。教室名を変えて再検索してください。';
+      st.style.color = '#888';
+    } else {
+      const top5 = json.results.slice(0, 5);
+      const list = document.getElementById('addCandidateList');
+      list.innerHTML = top5.map((r, i) => `
+        <div class="cand-row" id="cand-${i}" onclick="selectCand(${i}, ${JSON.stringify(r.place_id)}, ${JSON.stringify(r.name)}, ${JSON.stringify(r.formatted_address||'')})">
+          <div class="cand-name">${r.name}</div>
+          <div class="cand-addr">${r.formatted_address || ''}</div>
+          <div class="cand-pid">${r.place_id}</div>
+        </div>`).join('');
+      document.getElementById('addCandidates').style.display = 'block';
+      st.textContent = `${top5.length}件の候補が見つかりました`;
+      st.style.color = '#2e7d32';
+    }
+  } catch(e) {
+    st.textContent = '検索中にエラーが発生しました: ' + e.message;
+    st.style.color = '#c0392b';
+  }
+  btn.disabled = false;
+  btn.textContent = '再検索';
+}
+
+function selectCand(i, pid, name, address) {
+  addSelected = { pid, name, address };
+  document.querySelectorAll('.cand-row').forEach((el, j) =>
+    el.classList.toggle('selected', i === j));
+  document.getElementById('addConfirmBtn').disabled = false;
+  document.getElementById('addConfirmBtn').style.opacity = '1';
+}
+
+function confirmAdd() {
+  if (!addSelected) return;
+  const cat = document.getElementById('addCat').value;
+  const { pid, name, address } = addSelected;
+  const id  = 'custom_' + Date.now();
+  const num = BR.filter(b => b.cat === cat).length + 1;
+  const gn  = BR.length + 1;
+  const mapUrl = pid ? `https://www.google.com/maps/place/?q=place_id:${pid}` : '';
+  BR.push({ id, name, cat, num, gn, pid, fixUrl: mapUrl, custom: true });
+  D[id] = { total:0, replied:0, rating:null, mapUrl, lastUpdated:null };
+  updTabCounts(); persist(); summ(); render();
+  closeAddModal();
+}
+function delSchool(id) {
+  if (!confirm('この教室を削除しますか？')) return;
+  const idx = BR.findIndex(b => b.id === id);
+  if (idx === -1) return;
+  BR.splice(idx, 1);
+  delete D[id];
+  // gn を振り直す
+  BR.forEach((b, i) => { b.gn = i + 1; });
+  // cat ごとの num を振り直す
+  const cats = {};
+  BR.forEach(b => { cats[b.cat] = (cats[b.cat]||0) + 1; b.num = cats[b.cat]; });
+  updTabCounts(); persist(); summ(); render();
+}
+function updTabCounts() {
+  const all  = BR.length;
+  const man  = BR.filter(b=>b.cat==='manten').length;
+  const plus = BR.filter(b=>b.cat==='plus').length;
+  const ata  = BR.filter(b=>b.cat==='atama').length;
+  const tabs = document.querySelectorAll('.tab');
+  if (tabs[0]) tabs[0].textContent = `全教室（${all}）`;
+  if (tabs[1]) tabs[1].textContent = `まんてん個別（${man}）`;
+  if (tabs[2]) tabs[2].textContent = `まんてん個別プラス（${plus}）`;
+  if (tabs[3]) tabs[3].textContent = `atama+（${ata}）`;
+  document.getElementById('s1').textContent = all;
+  const sb = document.querySelector('.sc .sb');
+  if (sb) sb.textContent = `個別 ${man} ／ プラス ${plus} ／ atama+ ${ata}`;
+}
+
+function summ() {
+  let tot=0,rep=0,unrB=0,totU=0,rats=[];
+  BR.forEach(b=>{
+    const d=D[b.id];if(!d)return;
+    tot+=d.total||0; rep+=d.replied||0;
+    const u=Math.max(0,(d.total||0)-(d.replied||0));
+    totU+=u; if(u>0)unrB++;
+    if(d.rating&&(d.total||0)>0) rats.push(d.rating);
+  });
+  document.getElementById('s2').textContent=tot.toLocaleString();
+  document.getElementById('s3').textContent=totU.toLocaleString();
+  document.getElementById('s3b').textContent=`教室数: ${unrB}件`;
+  document.getElementById('s5').textContent =
+    rats.length ? (rats.reduce((a,b)=>a+b,0)/rats.length).toFixed(2) : '—';
+}
+
+// ─── Places API fetch ─────────────────────────────────────────────
+async function callPlaces(pid) {
+  const key = getKey();
+  if (!key) throw new Error('no-key');
+  const url = `https://maps.googleapis.com/maps/api/place/details/json` +
+    `?place_id=${pid}&fields=rating,user_ratings_total&key=${key}&language=ja`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  if (json.status !== 'OK') throw new Error(json.status);
+  return {
+    total:  json.result.user_ratings_total ?? null,
+    rating: json.result.rating             ?? null,
+  };
+}
+
+async function fetchOne(id) {
+  const key = getKey();
+  if (!key) { openSettings(); return; }
+  const b = BR.find(x => x.id === id);
+  if (!b?.pid) return;
+  rowFetching[id] = true; render();
+  try {
+    const r = await callPlaces(b.pid);
+    if (r.total !== null) {
+      D[id].total = r.total; D[id].rating = r.rating;
+      D[id].lastUpdated = new Date().toISOString();
+      persist(); summ();
+    }
+  } catch(e) {
+    if (e.message === 'no-key') openSettings();
+    else console.warn('fetchOne error:', b.name, e.message);
+  }
+  delete rowFetching[id]; render();
+}
+
+// ─── fetch all (with progress overlay) ───────────────────────────
+function setPi(id, cls, txt) {
+  const el = document.getElementById('ps-'+id); if(!el)return;
+  el.className='pst '+cls; el.textContent=txt;
+  document.getElementById('pi-'+id)?.scrollIntoView({block:'nearest'});
+}
+function closeOv() {
+  document.getElementById('ov').style.display='none';
+  document.getElementById('updBtn').disabled=false;
+  document.getElementById('updIco').textContent='↻';
+}
+
+async function fetchAll() {
+  const key = getKey();
+  if (!key) { openSettings(); return; }
+
+  // build progress list
+  document.getElementById('plist').innerHTML = BR.map(b=>`
+    <div class="pi" id="pi-${b.id}">
+      <span class="pnum">${b.gn}</span>
+      <span class="pname">${b.name}</span>
+      <span class="pst wait" id="ps-${b.id}">待機中</span>
+    </div>`).join('');
+  document.getElementById('pbar').style.width='0%';
+  document.getElementById('pcnt').textContent='';
+  document.getElementById('pnote').textContent='取得中です…';
+  document.getElementById('pcls').disabled=true;
+  document.getElementById('ov').style.display='flex';
+  document.getElementById('updBtn').disabled=true;
+  document.getElementById('updIco').innerHTML='<span class="spin"></span>';
+
+  const targets = BR.filter(b=>b.pid);
+  let done=0, ok=0, err=0;
+
+  for (const b of BR) {
+    if (!b.pid) { setPi(b.id,'err','Place ID なし'); done++; continue; }
+    setPi(b.id,'load','取得中…');
+    try {
+      const r = await callPlaces(b.pid);
+      if (r.total !== null) {
+        D[b.id].total=r.total; D[b.id].rating=r.rating;
+        D[b.id].lastUpdated=new Date().toISOString(); ok++;
+        setPi(b.id,'done',`${r.total}件${r.rating?' ★'+r.rating.toFixed(1):''}`);
+      } else { err++; setPi(b.id,'err','データなし'); }
+    } catch(e) {
+      err++; setPi(b.id,'err', e.message==='no-key'?'キー未設定':e.message==='REQUEST_DENIED'?'APIキーエラー':'エラー');
+    }
+    done++;
+    document.getElementById('pbar').style.width=Math.round(done/BR.length*100)+'%';
+    document.getElementById('pcnt').textContent=`${done} / ${BR.length} 教室`;
+    await new Promise(r=>setTimeout(r,250)); // rate limit
+  }
+
+  document.getElementById('pnote').textContent =
+    `完了: ${ok}件取得${err>0?` / ${err}件は取得できませんでした`:''}`;
+  document.getElementById('pcls').disabled=false;
+  document.getElementById('updBtn').disabled=false;
+  document.getElementById('updIco').textContent='↻';
+  persist(); summ(); render();
+}
+
+init();
+</script>
+</body>
+</html>
